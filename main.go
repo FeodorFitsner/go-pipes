@@ -103,33 +103,33 @@ func (pc *pipeConn) emitEvent(evt string) {
 }
 
 func (pc *pipeConn) startEventPump() {
-	output, err := openFifo(pc.eventPipeName, os.O_WRONLY)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer output.Close()
 
 	for {
-		//fmt.Println("Before select")
+		output, err := openFifo(pc.eventPipeName, os.O_WRONLY)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		select {
 		case evt := <-pc.events:
 			//fmt.Printf("Write event: %s\n", evt)
 			output.WriteString(evt + "\n")
 		}
+
+		output.Close()
 	}
 }
 
 func openFifo(path string, oflag int) (f *os.File, err error) {
 
-	fmt.Printf("before opening: %d\n", oflag)
+	//fmt.Printf("before opening: %d\n", oflag)
 
 	f, err = os.OpenFile(path, oflag, os.ModeNamedPipe)
 	if err != nil {
 		return
 	}
 
-	fmt.Println("opened")
+	//fmt.Println("opened")
 
 	// // In case we're using a pre-made file, check that it's actually a FIFO
 	// fi, err := f.Stat()
@@ -155,8 +155,8 @@ func main() {
 
 		i := 0
 		for {
-			pipe.emitEvent(fmt.Sprintf("event - %d", i))
-			time.Sleep(5 * time.Second)
+			pipe.emitEvent(fmt.Sprintf("click btn%d", i))
+			time.Sleep(10 * time.Millisecond)
 			i++
 		}
 
