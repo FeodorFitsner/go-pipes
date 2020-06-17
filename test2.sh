@@ -1,6 +1,6 @@
 PGLET_CONTROL_TYPES=("ROW" "COL" "TEXTBOX" "CONTROLS")
 
-contains_newline() {
+function contains_newline() {
     local nl='
 '
     case "$1" in
@@ -9,7 +9,7 @@ contains_newline() {
     esac
 }
 
-contains_whitespace() {
+function contains_whitespace() {
     local var=$1
     if [[ ${var//[^[:blank:]]} ]]
     then
@@ -19,7 +19,7 @@ contains_whitespace() {
     fi
 }
 
-contains_equal() {
+function contains_equal() {
     local var=$1
     if [[ ${var//[^=]} ]]
     then
@@ -29,17 +29,26 @@ contains_equal() {
     fi
 }
 
-function is_pglet_control() {
+function strings_are_equal_case_ins() {
     local orig_nocasematch=$(shopt -p nocasematch)
     shopt -s nocasematch
+    local result='false'
+    if [[ "$1" == "$2" ]]; then
+        result='true'
+    fi
+    $orig_nocasematch
+    echo "$result"
+}
+
+function is_pglet_control() {
+    local result='false'
     for ctrl_type in ${PGLET_CONTROL_TYPES[@]}; do
-        if [[ "$ctrl_type" == "$1" ]]; then
-            echo "true"
+        if [[ "$(strings_are_equal_case_ins "$ctrl_type" "$1")" == 'true' ]]; then
+            result='true'
             break
         fi
     done
-    $orig_nocasematch
-    echo "false"
+    echo "$result"
 }
 
 function is_pglet_identifier() {
@@ -52,8 +61,22 @@ function is_pglet_identifier() {
     fi
 }
 
-#is_pglet_control "textbox"
-#is_pglet_identifier "aaabbb"
+function escape_quotes() {
+    echo "$1" | while IFS='' read line; do
+        echo "${line//\"/\\\"}"
+    done
+}
+
+function quote_string() {
+    echo "\"$(escape_quotes "$1")\""
+}
+
+quote_string "aa\"a
+  bbb
+    c\"cc"
+
+# is_pglet_control "textbox"
+# is_pglet_identifier "aaabbb"
 
 trim_and_quote() {
     local var="$*"
@@ -75,17 +98,21 @@ function pglet_add() {
     local totalArgs=$#
     local parentControlId=''
     local controlType=''
+    local controlId=''
+    declare props=()
+    local controlsSnippet=''
 
     if [[ $totalArgs -lt 1 ]]; then
         echo "pglet_add() should have at least one parameter"
         return 1
     fi
 
+    # parse command arguments
     for arg in "$@"
     do
         echo "$i: >>> $arg <<<"
-        echo "is_pglet_identifier: $(is_pglet_identifier "$arg")"
-        echo "is_pglet_control: $(is_pglet_control "$arg")"
+        # echo "is_pglet_identifier: $(is_pglet_identifier "$arg")"
+        # echo "is_pglet_control: $(is_pglet_control "$arg")"
 
         if [[ $i -eq 1 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]] && [[ "$(is_pglet_control "$arg")" == "false" ]]; then
             # 1 - parent control ID
@@ -100,11 +127,26 @@ function pglet_add() {
                 return 1
             fi
             controlType="$arg"
+        elif [[ $i -eq 2 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]]; then
+            # 2 - control ID
+            if [[ "$controlType" == "" ]]; then
+                echo "Control ID could be the 2nd or 3rd argument only"
+                return 1
+            fi
+            controlId="$arg"
+        elif [[ $i -eq 3 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]]; then
+            # 3 - control ID
+            controlId="$arg"
+        elif [[ $i -eq $totalArgs ]] && [[ "$(strings_are_equal_case_ins "$controlType" "CONTROLS")" == 'true' ]]; then
+            controlsSnippet="$arg"
+        else
+            # property
+            props+=("$arg")
         fi
         i=$[i + 1]
     done
 
-    echo "pglet_add() parentControlId=$parentControlId controlType=$controlType"
+    echo "pglet_add() parentControlId=$parentControlId controlType=$controlType controlId=$controlId props: $props controlsSnippet=$(quote_string "$controlsSnippet")"
 }
 
 function pglet_set() {
@@ -127,8 +169,12 @@ pglet_add
 
 pglet_add "dddd"
 
-pglet_add fragment value="222 \" ddd" 'aaa
-bbb
+pglet_add footer textbox
+
+pglet_add row a1 width=50%
+
+pglet_add footer controls 'aa"a
+b"bb
    ccc'
 
 # pattern='s/\(=[[:blank:]]*\)\(.*\)/\1"\2"/'
