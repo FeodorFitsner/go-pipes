@@ -52,12 +52,14 @@ func (pc *pipeConn) read() string {
 	var err error
 	buf := make([]byte, readsize)
 	for {
+		var result []byte
 		input, err := openFifo(pc.ctrlPipeName, os.O_RDONLY)
 		if err != nil {
 			break
 		}
 		for err == nil {
 			bytesRead, err = input.Read(buf)
+			result = append(result, buf[0:bytesRead]...)
 			//atomic.AddInt64(&byteCount, int64(delta))
 
 			if err == io.EOF {
@@ -65,11 +67,10 @@ func (pc *pipeConn) read() string {
 			}
 
 			fmt.Printf("read: %d\n", bytesRead)
-
-			fmt.Print(string(buf))
 		}
 		fmt.Println("closing reader")
 		input.Close()
+		fmt.Print(string(result))
 		fmt.Println("closed reader")
 		return ""
 	}

@@ -19,10 +19,22 @@ function pglet_connect_page() {
     eval "pglet_start_session $handler_function 2 "pipe2.controls" "pipe2.events" &"
 }
 
+trim_and_quote() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    var=${var//\"/\\\"}
+    printf '%s' "$var"
+}
+
 function pglet_add() {
     echo "pglet_add to $PGLET_CONTROLS_PIPE"
     for i in "$@"
     do
-        echo ">>> $i <<<"
+        echo "$i" | while IFS='=' read key value; do
+            printf '%s="%s"\n' "$(trim_and_quote "$key")" "$(trim_and_quote "$value")"
+        done
     done
 }

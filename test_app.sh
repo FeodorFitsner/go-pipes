@@ -7,8 +7,10 @@ function page1_connected() {
     echo "PGLET_CONTROLS_PIPE: $PGLET_CONTROLS_PIPE"
     echo "PGLET_EVENTS_PIPE: $PGLET_EVENTS_PIPE"
 
-    pglet_add header textbox=2 text="test \"aaa"
-    sleep 5
+    local hint="this is a hint!"
+
+    pglet_add header textbox hint="$hint" text="test \"aaa"
+    sleep 2
     pglet_add footer a
     pglet_add footer '
       row
