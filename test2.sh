@@ -1,10 +1,14 @@
+# echo "SHELL: $SHELL"
+# echo "ZSH_NAME: $ZSH_NAME"
+
 PGLET_CONTROL_TYPES=("ROW" "COL" "TEXTBOX" "CONTROLS")
 
-function contains_newline() {
-    local nl='
+NEW_LINE='
 '
+
+function contains_newline() {
     case "$1" in
-        *$nl*)  echo 'true' ;;
+        *$NEW_LINE*)  echo 'true' ;;
         *)      echo 'false'  ;;
     esac
 }
@@ -30,14 +34,25 @@ function contains_equal() {
 }
 
 function strings_are_equal_case_ins() {
-    local orig_nocasematch=$(shopt -p nocasematch)
-    shopt -s nocasematch
-    local result='false'
-    if [[ "$1" == "$2" ]]; then
-        result='true'
+    if [[ "$ZSH_NAME" == "" ]]
+    then
+        # bash
+        local orig_nocasematch=$(shopt -p nocasematch)
+        shopt -s nocasematch
+        local result='false'
+        if [[ "$1" == "$2" ]]; then
+            result='true'
+        fi
+        $orig_nocasematch
+        echo "$result"
+    else
+        # zsh
+        local result='false'
+        if [[ "$1:u" == "$2:u" ]]; then
+            result='true'
+        fi
+        echo "$result"
     fi
-    $orig_nocasematch
-    echo "$result"
 }
 
 function is_pglet_control() {
@@ -62,18 +77,28 @@ function is_pglet_identifier() {
 }
 
 function escape_quotes() {
-    echo "$1" | while IFS='' read line; do
-        echo "${line//\"/\\\"}"
-    done
+    local var=$1
+    if [[ "$ZSH_NAME" == "" ]]
+    then
+        # bash
+        echo "${var//\"/\\\"}"
+    else
+        # zsh
+        echo "${var//\"/\\\\\"}"
+    fi
 }
 
 function quote_string() {
     echo "\"$(escape_quotes "$1")\""
 }
 
-quote_string "aa\"a
-  bbb
-    c\"cc"
+# escape_quotes "aa\"a
+#   bbb
+#     c\"cc"
+
+# quote_string "aa\"a
+#   bbb
+#     c\"cc"
 
 # is_pglet_control "textbox"
 # is_pglet_identifier "aaabbb"
@@ -88,9 +113,52 @@ trim_and_quote() {
     printf '%s' "$var"
 }
 
-echo "key1 =   valu\"e2 = 2" | while IFS='=' read key value; do
-    printf '%s="%s"\n' "$(trim_and_quote "$key")" "$(trim_and_quote "$value")"
-done
+function replace_newline() {
+    local var=$1
+    if [[ "$ZSH_NAME" == "" ]]
+    then
+        # bash
+        echo "${var//$NEW_LINE/\\n}"
+    else
+        # zsh
+        echo "${var//$NEW_LINE/\\\\n}"
+    fi
+}
+
+replace_newline "WWWW
+   bbb
+ccc"
+
+function split_property() {
+    echo "$1"
+    IFS='='
+    for x in $1
+    do
+        echo "> $x"
+    done
+}
+
+split_property "a=1"
+
+function quote_property_value() {
+    local i=0
+    local escapedLines=()
+    local result=''
+    echo "$1" | while IFS='=' read key value; do
+        #printf '%s="%s"\n' "$(trim_and_quote "$key")" "$(trim_and_quote "$value")"
+        if [[ $i -eq 0 ]]
+        then
+            escapedLines+=("${key}=\"$(escape_quotes "$value")")
+        else
+            escapedLines+=("${key}=${value}")
+        fi
+        i=$[i + 1]
+        echo "$i"
+    done
+    echo "bbb: $escapedLines"
+}
+
+quote_property_value "key1 =   valu\"e2 = 2"
 
 function pglet_add() {
     local args="$*"
@@ -111,8 +179,8 @@ function pglet_add() {
     for arg in "$@"
     do
         echo "$i: >>> $arg <<<"
-        # echo "is_pglet_identifier: $(is_pglet_identifier "$arg")"
-        # echo "is_pglet_control: $(is_pglet_control "$arg")"
+        #echo "is_pglet_identifier: $(is_pglet_identifier "$arg")"
+        #echo "is_pglet_control: $(is_pglet_control "$arg")"
 
         if [[ $i -eq 1 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]] && [[ "$(is_pglet_control "$arg")" == "false" ]]; then
             # 1 - parent control ID
@@ -134,7 +202,7 @@ function pglet_add() {
                 return 1
             fi
             controlId="$arg"
-        elif [[ $i -eq 3 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]]; then
+        elif [[ $i -eq 3 ]] && [[ "$(is_pglet_identifier "$arg")" == "true" ]] && [[ "$(strings_are_equal_case_ins "$controlType" "CONTROLS")" == 'false' ]]; then
             # 3 - control ID
             controlId="$arg"
         elif [[ $i -eq $totalArgs ]] && [[ "$(strings_are_equal_case_ins "$controlType" "CONTROLS")" == 'true' ]]; then
@@ -173,6 +241,8 @@ pglet_add footer textbox
 
 pglet_add row a1 width=50%
 
+pglet_add footer controls 'zzz"ssss'
+
 pglet_add footer controls 'aa"a
 b"bb
    ccc'
@@ -185,18 +255,18 @@ b"bb
 
 
 
-var='a b
-c'
+# var='a b
+# c'
 
-var2='sssccc='
-var3='aa ccc ddd'
+# var2='sssccc='
+# var3='aa ccc ddd'
 
-contains_newline "$var"
-contains_newline "$var2"
+# contains_newline "$var"
+# contains_newline "$var2"
 
-contains_whitespace "$var"
-contains_whitespace "$var2"
-contains_whitespace "$var3"
+# contains_whitespace "$var"
+# contains_whitespace "$var2"
+# contains_whitespace "$var3"
 
-contains_equal "$var"
-contains_equal "$var2"
+# contains_equal "$var"
+# contains_equal "$var2"
