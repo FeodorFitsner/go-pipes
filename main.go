@@ -154,9 +154,10 @@ func openFifo(path string, oflag int) (f *os.File, err error) {
 }
 
 func testRegexp() {
-	re := regexp.MustCompile(`(\w+)[\s]*=[\s]*((?:[^"'\s]+)|'(?:[^']*)'|"(?:[^"]*)")`)
-	fmt.Printf("%q\n", re.FindAllSubmatch([]byte(`key1='value 
-xvvv' key2='val"ue'`), -1))
+	re := regexp.MustCompile(`(?:(\w+(?:\:\w+)*)[\s]*(?:=[\s]*((?:[^"'\s]+)|'(?:[^']*)'|"(?:[^"]*)"))?)`)
+	fmt.Printf("%q\n", re.FindAllSubmatch([]byte(`header:link1 TEXTBOX txt1 key1='value 
+	xvvv' key2='val"ue'key3="aaab '''ss"
+	key4=1 key_a=""`), -1))
 }
 
 func main() {
