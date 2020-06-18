@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"regexp"
 	"syscall"
 	"time"
 )
@@ -71,6 +72,13 @@ func (pc *pipeConn) read() string {
 		fmt.Println("closing reader")
 		input.Close()
 		fmt.Print(string(result))
+
+		// runes := []rune(string(result))
+
+		// for index, runeValue := range runes {
+		// 	fmt.Printf("%#U starts at byte position %d\n", runeValue, index)
+		// }
+
 		fmt.Println("closed reader")
 		return ""
 	}
@@ -145,7 +153,16 @@ func openFifo(path string, oflag int) (f *os.File, err error) {
 	return
 }
 
+func testRegexp() {
+	re := regexp.MustCompile(`(\w+)[\s]*=[\s]*((?:[^"'\s]+)|'(?:[^']*)'|"(?:[^"]*)")`)
+	fmt.Printf("%q\n", re.FindAllSubmatch([]byte(`key1='value 
+xvvv' key2='val"ue'`), -1))
+}
+
 func main() {
+
+	testRegexp()
+	return
 
 	// Setup our Ctrl+C handler
 	setupCloseHandler()

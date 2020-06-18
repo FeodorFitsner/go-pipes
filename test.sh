@@ -9,18 +9,19 @@ function pglet() {
     build_pglet_add "$@" > test.ui
 }
 
-pglet "ADD right
-row header
-  alert message
-row form
-  column
-    textbox firstName label='First name'
-  column
-    textbox lastName label='Last name'
-row footer
-  column
-    button ok text=OK
-    button cancel text=Cancel"
+# pglet "ADD right
+# row header
+#   alert message
+# row form
+#   column
+#     textbox firstName label='Имя'
+#   column
+#     textbox lastName label='Фамилия'
+# row footer
+#   column
+#     button ok text=OK
+#     button cancel text=Cancel"
+pglet "ADD тест end"
 
 #pglet 'GET firstName value'
 
